@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD App</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .item { display: flex; justify-content: space-between; padding: 8px; border: 1px solid #ccc; margin-bottom: 8px; }
+        .item input { margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <h1>CRUD App</h1>
+    <input type="text" id="new-item" placeholder="New Item">
+    <button onclick="addItem()">Add Item</button>
+    <ul id="items"></ul>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchItems);
+
+        async function fetchItems() {
+            const res = await fetch('/api/items');
+            const items = await res.json();
+            const itemsList = document.getElementById('items');
+            itemsList.innerHTML = '';
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'item';
+                li.dataset.id = item._id;
+                li.innerHTML = `
+                    <input type="text" value="${item.name}" onchange="updateItem(event)">
+                    <button onclick="deleteItem('${item._id}')">Delete</button>
+                `;
+                itemsList.appendChild(li);
+            });
+        }
+
+        async function addItem() {
+            const newItem = document.getElementById('new-item').value;
+            if (newItem.trim() === '') return;
+
+            const res = await fetch('/api/items', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newItem })
+            });
+
+            const item = await res.json();
+            const itemsList = document.getElementById('items');
+            const li = document.createElement('li');
+            li.className = 'item';
+            li.dataset.id = item._id;
+            li.innerHTML = `
+                <input type="text" value="${item.name}" onchange="updateItem(event)">
+                <button onclick="deleteItem('${item._id}')">Delete</button>
+            `;
+            itemsList.appendChild(li);
+            document.getElementById('new-item').value = '';
+        }
+
+        async function deleteItem(id) {
+            await fetch(`/api/items/${id}`, { method: 'DELETE' });
+            fetchItems();
+        }
+
+        async function updateItem(event) {
+            const input = event.target;
+            const id = input.closest('.item').dataset.id;
+            await fetch(`/api/items/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: input.value })
+            });
+            fetchItems();
+        }
+    </script>
+</body>
+</html>
